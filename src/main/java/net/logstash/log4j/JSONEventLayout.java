@@ -1,7 +1,11 @@
 package net.logstash.log4j;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.TimeZone;
+
 import net.logstash.log4j.data.HostData;
-import net.minidev.json.JSONObject;
+
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.time.FastDateFormat;
 import org.apache.log4j.Layout;
@@ -9,12 +13,10 @@ import org.apache.log4j.helpers.LogLog;
 import org.apache.log4j.spi.LocationInfo;
 import org.apache.log4j.spi.LoggingEvent;
 import org.apache.log4j.spi.ThrowableInformation;
+import org.codehaus.jettison.json.JSONException;
+import org.codehaus.jettison.json.JSONObject;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.TimeZone;
-
-public class JSONEventLayoutV1 extends Layout {
+public class JSONEventLayout extends Layout {
 
     private boolean locationInfo = false;
     private String customUserFields;
@@ -46,7 +48,7 @@ public class JSONEventLayoutV1 extends Layout {
      * For backwards compatibility, the default is to generate location information
      * in the log messages.
      */
-    public JSONEventLayoutV1() {
+    public JSONEventLayout() {
         this(true);
     }
 
@@ -55,7 +57,7 @@ public class JSONEventLayoutV1 extends Layout {
      *
      * @param locationInfo whether or not to include location information in the log messages.
      */
-    public JSONEventLayoutV1(boolean locationInfo) {
+    public JSONEventLayout(boolean locationInfo) {
         this.locationInfo = locationInfo;
     }
 
@@ -68,16 +70,25 @@ public class JSONEventLayoutV1 extends Layout {
 
         logstashEvent = new JSONObject();
         String whoami = this.getClass().getSimpleName();
-
-        /**
+        
+        /*
          * All v1 of the event format requires is
          * "@timestamp" and "@version"
          * Every other field is arbitrary
          */
-        logstashEvent.put("@version", version);
-        logstashEvent.put("@timestamp", dateFormat(timestamp));
+        try {
+			logstashEvent.put("@version",version);
+			logstashEvent.put("@timestamp", dateFormat(timestamp));
+	        logstashEvent.put("source_host", hostname);
+	        
+	        // Converts the message to a JSONObject
+	        JSONObject messageJson = new JSONObject(loggingEvent.getRenderedMessage());
+	        logstashEvent.put("message", messageJson);
+	        
+		} catch (JSONException e1) {
+		}
 
-        /**
+        /*
          * Extract and add fields from log4j config, if defined
          */
         if (getUserFields() != null) {
@@ -86,7 +97,7 @@ public class JSONEventLayoutV1 extends Layout {
             addUserFields(userFlds);
         }
 
-        /**
+        /*
          * Extract fields from system properties, if defined
          * Note that CLI props will override conflicts with log4j config
          */
@@ -99,11 +110,6 @@ public class JSONEventLayoutV1 extends Layout {
             addUserFields(userFieldsProperty);
         }
 
-        /**
-         * Now we start injecting our own stuff.
-         */
-        logstashEvent.put("source_host", hostname);
-        logstashEvent.put("message", loggingEvent.getRenderedMessage());
 
         if (loggingEvent.getThrowableInformation() != null) {
             final ThrowableInformation throwableInformation = loggingEvent.getThrowableInformation();
@@ -117,7 +123,7 @@ public class JSONEventLayoutV1 extends Layout {
                 String stackTrace = StringUtils.join(throwableInformation.getThrowableStrRep(), "\n");
                 exceptionInformation.put("stacktrace", stackTrace);
             }
-            addEventData("exception", exceptionInformation);
+            addEventData("exception", new JSONObject(exceptionInformation));
         }
 
         if (locationInfo) {
@@ -141,7 +147,7 @@ public class JSONEventLayoutV1 extends Layout {
         return ignoreThrowable;
     }
 
-    /**
+    /*
      * Query whether log messages include location information.
      *
      * @return true if location information is included in log messages, false otherwise.
@@ -150,7 +156,7 @@ public class JSONEventLayoutV1 extends Layout {
         return locationInfo;
     }
 
-    /**
+    /*
      * Set whether log messages should include location information.
      *
      * @param locationInfo true if location information should be included, false otherwise.
@@ -181,7 +187,9 @@ public class JSONEventLayoutV1 extends Layout {
     }
     private void addEventData(String keyname, Object keyval) {
         if (null != keyval) {
-            logstashEvent.put(keyname, keyval);
+        	try{
+        		logstashEvent.put(keyname, keyval);
+        	}catch(JSONException je){}
         }
     }
 }

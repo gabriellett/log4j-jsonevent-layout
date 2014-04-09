@@ -21,11 +21,11 @@ import org.junit.Test;
  * Time: 12:07 AM
  * To change this template use File | Settings | File Templates.
  */
-public class JSONEventLayoutV1Test {
+public class JSONEventLayoutTest {
     static Logger logger;
     static MockAppenderV1 appender;
     static MockAppenderV1 userFieldsAppender;
-    static JSONEventLayoutV1 userFieldsLayout;
+    static JSONEventLayout userFieldsLayout;
     static final String userFieldsSingle = new String("field1:value1");
     static final String userFieldsMulti = new String("field2:value2,field3:value3");
     static final String userFieldsSingleProperty = new String("field1:propval1");
@@ -39,7 +39,7 @@ public class JSONEventLayoutV1Test {
 
     @BeforeClass
     public static void setupTestAppender() {
-        appender = new MockAppenderV1(new JSONEventLayoutV1());
+        appender = new MockAppenderV1(new JSONEventLayout());
         logger = Logger.getRootLogger();
         appender.setThreshold(Level.TRACE);
         appender.setName("mockappenderv1");
@@ -63,7 +63,7 @@ public class JSONEventLayoutV1Test {
 
     @Test
     public void testJSONEventLayoutHasUserFieldsFromProps() {
-        System.setProperty(JSONEventLayoutV1.ADDITIONAL_DATA_PROPERTY, userFieldsSingleProperty);
+        System.setProperty(JSONEventLayout.ADDITIONAL_DATA_PROPERTY, userFieldsSingleProperty);
         logger.info("this is an info message with user fields");
         String message = appender.getMessages()[0];
         Assert.assertTrue("Event is not valid JSON", JSONValue.isValidJsonStrict(message));
@@ -71,12 +71,12 @@ public class JSONEventLayoutV1Test {
         JSONObject jsonObject = (JSONObject) obj;
         Assert.assertTrue("Event does not contain field 'field1'" , jsonObject.containsKey("field1"));
         Assert.assertEquals("Event does not contain value 'value1'", "propval1", jsonObject.get("field1"));
-        System.clearProperty(JSONEventLayoutV1.ADDITIONAL_DATA_PROPERTY);
+        System.clearProperty(JSONEventLayout.ADDITIONAL_DATA_PROPERTY);
     }
 
     @Test
     public void testJSONEventLayoutHasUserFieldsFromConfig() {
-        JSONEventLayoutV1 layout = (JSONEventLayoutV1) appender.getLayout();
+        JSONEventLayout layout = (JSONEventLayout) appender.getLayout();
         String prevUserData = layout.getUserFields();
         layout.setUserFields(userFieldsSingle);
 
@@ -93,7 +93,7 @@ public class JSONEventLayoutV1Test {
 
     @Test
     public void testJSONEventLayoutUserFieldsMulti() {
-        JSONEventLayoutV1 layout = (JSONEventLayoutV1) appender.getLayout();
+        JSONEventLayout layout = (JSONEventLayout) appender.getLayout();
         String prevUserData = layout.getUserFields();
         layout.setUserFields(userFieldsMulti);
 
@@ -113,10 +113,10 @@ public class JSONEventLayoutV1Test {
     @Test
     public void testJSONEventLayoutUserFieldsPropOverride() {
         // set the property first
-        System.setProperty(JSONEventLayoutV1.ADDITIONAL_DATA_PROPERTY, userFieldsSingleProperty);
+        System.setProperty(JSONEventLayout.ADDITIONAL_DATA_PROPERTY, userFieldsSingleProperty);
 
         // set the config values
-        JSONEventLayoutV1 layout = (JSONEventLayoutV1) appender.getLayout();
+        JSONEventLayout layout = (JSONEventLayout) appender.getLayout();
         String prevUserData = layout.getUserFields();
         layout.setUserFields(userFieldsSingle);
 
@@ -129,13 +129,13 @@ public class JSONEventLayoutV1Test {
         Assert.assertEquals("Event does not contain value 'propval1'", "propval1", jsonObject.get("field1"));
 
         layout.setUserFields(prevUserData);
-        System.clearProperty(JSONEventLayoutV1.ADDITIONAL_DATA_PROPERTY);
+        System.clearProperty(JSONEventLayout.ADDITIONAL_DATA_PROPERTY);
 
     }
 
     @Test
     public void testJSONEventLayoutHasKeys() {
-        logger.info("this is a test message");
+        logger.info("{\"test\":\"messge\"}");
         String message = appender.getMessages()[0];
         Object obj = JSONValue.parse(message);
         JSONObject jsonObject = (JSONObject) obj;
@@ -209,7 +209,7 @@ public class JSONEventLayoutV1Test {
 
     @Test
     public void testJSONEventLayoutNoLocationInfo() {
-        JSONEventLayoutV1 layout = (JSONEventLayoutV1) appender.getLayout();
+        JSONEventLayout layout = (JSONEventLayout) appender.getLayout();
         boolean prevLocationInfo = layout.getLocationInfo();
 
         layout.setLocationInfo(false);
@@ -231,7 +231,7 @@ public class JSONEventLayoutV1Test {
     @Test
     @Ignore
     public void measureJSONEventLayoutLocationInfoPerformance() {
-        JSONEventLayoutV1 layout = (JSONEventLayoutV1) appender.getLayout();
+        JSONEventLayout layout = (JSONEventLayout) appender.getLayout();
         boolean locationInfo = layout.getLocationInfo();
         int iterations = 100000;
         long start, stop;
@@ -261,6 +261,6 @@ public class JSONEventLayoutV1Test {
     @Test
     public void testDateFormat() {
         long timestamp = 1364844991207L;
-        Assert.assertEquals("format does not produce expected output", "2013-04-01T19:36:31.207Z", JSONEventLayoutV1.dateFormat(timestamp));
+        Assert.assertEquals("format does not produce expected output", "2013-04-01T19:36:31.207Z", JSONEventLayout.dateFormat(timestamp));
     }
 }
